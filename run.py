@@ -227,9 +227,6 @@ HTML_PAGE = """<!DOCTYPE html>
     .logo{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;color:var(--accent);letter-spacing:2px;display:flex;align-items:center;gap:10px}
     .live-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background .3s}
     .live-dot.active{background:var(--green);animation:blink 1s infinite}
-    .api-bar{display:flex;gap:8px;align-items:center}
-    .api-bar input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;transition:border-color .2s}
-    .api-bar input.valid{border-color:rgba(0,255,148,.4)}
     .server-status{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:5px 10px;border-radius:6px;border:1px solid var(--border);color:var(--muted);background:var(--surface2);white-space:nowrap}
     .server-status.ok{color:var(--green);border-color:rgba(0,255,148,.3)}
     .server-status.err{color:var(--red);border-color:rgba(255,59,107,.3)}
@@ -256,9 +253,6 @@ HTML_PAGE = """<!DOCTYPE html>
     .typing-indicator span:nth-child(2){animation-delay:.2s}
     .typing-indicator span:nth-child(3){animation-delay:.4s}
     .input-bar{padding:16px 20px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:10px;align-items:center;flex-shrink:0}
-    .speaker-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0}
-    .speaker-toggle button{padding:8px 14px;background:transparent;border:none;color:var(--muted);font-size:11px;font-family:inherit;cursor:pointer;font-weight:600;transition:all .2s}
-    .speaker-toggle button.active{background:var(--accent);color:var(--bg)}
     .msg-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}
     .msg-input:focus{border-color:var(--accent)}
     .send-btn{background:var(--accent);color:var(--bg);border:none;border-radius:8px;padding:10px 20px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
@@ -295,10 +289,6 @@ HTML_PAGE = """<!DOCTYPE html>
     CONVOBOT
     <span style="font-size:10px;color:var(--muted);font-weight:400">// PYTHON + FASTAPI + GROQ</span>
   </div>
-  <div class="api-bar">
-    <input type="password" id="apiKey" placeholder="Groq API Key (gsk_...)" style="width:210px;" oninput="onKeyInput(this)"/>
-    <span class="server-status ok" id="serverStatus">⬤ server running</span>
-  </div>
 </header>
 <div class="main">
   <div class="chat-panel">
@@ -306,7 +296,7 @@ HTML_PAGE = """<!DOCTYPE html>
       <div class="msg bot">
         <div class="bubble-wrap">
           <div class="bubble-label">BOT</div>
-          <div class="bubble">👋 Hello! I'm your AI support assistant. Enter your Groq API key above and start chatting!</div>
+          <div class="bubble">👋 Hello! I'm your AI support assistant. How can I help you today?</div>
         </div>
         <div class="avatar b">B</div>
       </div>
@@ -315,10 +305,6 @@ HTML_PAGE = """<!DOCTYPE html>
       <div class="typing-indicator" id="typingIndicator"><span></span><span></span><span></span></div>
     </div>
     <div class="input-bar">
-      <div class="speaker-toggle">
-        <button class="active" id="btnCustomer" onclick="setSpeaker('Customer')">Customer</button>
-        <button id="btnAgent" onclick="setSpeaker('Agent')">Agent</button>
-      </div>
       <input class="msg-input" id="msgInput" type="text" placeholder="Type your message and press Enter..."
         onkeydown="if(event.key==='Enter')sendMessage()"/>
       <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
@@ -327,7 +313,7 @@ HTML_PAGE = """<!DOCTYPE html>
   </div>
   <div class="analytics-panel">
     <div class="panel-title">Live Analytics</div>
-    <div id="emptyState" class="empty-state">Enter your Groq API key<br/>and start chatting to see<br/>real-time analytics here.</div>
+    <div id="emptyState" class="empty-state">Start chatting to see<br/>real-time analytics here.</div>
     <div id="analyticsCards" style="display:none;flex-direction:column;gap:10px">
       <div class="card" id="cardIntent">
         <div class="card-label">Intent</div>
@@ -374,15 +360,7 @@ HTML_PAGE = """<!DOCTYPE html>
   </div>
 </div>
 <script>
-  let speaker='Customer',chatHistory=[],segments=[],isBusy=false;
-  function getApiKey(){return document.getElementById('apiKey').value.trim()}
-  function onKeyInput(el){el.classList.toggle('valid',el.value.startsWith('gsk_'))}
-  function setSpeaker(s){
-    speaker=s;
-    document.getElementById('btnCustomer').classList.toggle('active',s==='Customer');
-    document.getElementById('btnAgent').classList.toggle('active',s==='Agent');
-    document.getElementById('msgInput').placeholder=`Type as ${s}...`;
-  }
+  let chatHistory=[],segments=[],isBusy=false;
   function addMessage(spk,text){
     const c=document.getElementById('messages'),isBot=spk!=='Customer';
     c.insertAdjacentHTML('beforeend',`<div class="msg ${isBot?'bot':'customer'}">${!isBot?'<div class="avatar c">C</div>':''}<div class="bubble-wrap"><div class="bubble-label">${spk.toUpperCase()}</div><div class="bubble">${text}</div></div>${isBot?'<div class="avatar b">B</div>':''}</div>`);
@@ -393,8 +371,7 @@ HTML_PAGE = """<!DOCTYPE html>
     document.getElementById('messages').scrollTop=99999;
   }
   async function apiFetch(path,body){
-    const key=getApiKey();
-    const res=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json',...(key?{'x-groq-api-key':key}:{})},body:JSON.stringify(body)});
+    const res=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!res.ok){const e=await res.json();throw new Error(e.detail||'API error')}
     return res.json();
   }
@@ -402,22 +379,19 @@ HTML_PAGE = """<!DOCTYPE html>
     const input=document.getElementById('msgInput');
     const text=input.value.trim();
     if(!text||isBusy)return;
-    if(!getApiKey()){alert('Please enter your Groq API key first!');return}
     input.value='';isBusy=true;
     document.getElementById('sendBtn').disabled=true;
-    addMessage(speaker,text);
-    segments.push({speaker,text});
-    chatHistory.push({role:speaker==='Customer'?'user':'assistant',content:text});
-    if(speaker==='Customer'){
-      showTyping(true);
-      try{
-        const data=await apiFetch('/api/chat',{messages:chatHistory,session_id:'web'});
-        showTyping(false);
-        addMessage('Bot',data.reply);
-        segments.push({speaker:'Agent',text:data.reply});
-        chatHistory.push({role:'assistant',content:data.reply});
-      }catch(e){showTyping(false);addMessage('Bot',`⚠ ${e.message}`);}
-    }
+    addMessage('Customer',text);
+    segments.push({speaker:'Customer',text});
+    chatHistory.push({role:'user',content:text});
+    showTyping(true);
+    try{
+      const data=await apiFetch('/api/chat',{messages:chatHistory,session_id:'web'});
+      showTyping(false);
+      addMessage('Bot',data.reply);
+      segments.push({speaker:'Agent',text:data.reply});
+      chatHistory.push({role:'assistant',content:data.reply});
+    }catch(e){showTyping(false);addMessage('Bot',`⚠ ${e.message}`);}
     try{const a=await apiFetch('/api/analyze',{segments,session_id:'web'});if(a)updateUI(a);}
     catch(e){console.error(e)}
     isBusy=false;
