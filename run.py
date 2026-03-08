@@ -1,17 +1,3 @@
-"""
-ConvoBot — All-in-One Launcher
-===============================
-Run this single file to start the entire app:
-
-    python3 run.py
-
-Then open: http://localhost:8001
-No separate HTML file needed. Everything is served by FastAPI.
-
-Stack : FastAPI + Groq API (Llama 3.3 70B)
-Author: Your Name
-"""
-
 import os
 import uvicorn
 import httpx
@@ -31,16 +17,10 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────
-# CONFIG
-# ─────────────────────────────────────────────
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL   = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
-# ─────────────────────────────────────────────
-# SCHEMAS
-# ─────────────────────────────────────────────
 class Speaker(str, Enum):
     CUSTOMER = "Customer"
     AGENT    = "Agent"
@@ -79,9 +59,6 @@ class ChatResponse(BaseModel):
     reply:      str
     session_id: Optional[str] = None
 
-# ─────────────────────────────────────────────
-# PROMPTS
-# ─────────────────────────────────────────────
 ANALYTICS_SYSTEM = """You are a real-time conversation analytics engine for a call center.
 Analyze the provided conversation transcript and return ONLY a valid JSON object:
 {
@@ -102,9 +79,6 @@ CHAT_SYSTEM = """You are a helpful, professional customer support agent.
 Keep responses concise (2-3 sentences). Be empathetic and solution-focused.
 You handle billing, account issues, technical problems, and subscriptions."""
 
-# ─────────────────────────────────────────────
-# GROQ HELPER
-# ─────────────────────────────────────────────
 async def groq_call(messages: list, api_key: str, json_mode: bool = False) -> str:
     key = api_key or GROQ_API_KEY
     if not key:
@@ -131,9 +105,6 @@ async def groq_call(messages: list, api_key: str, json_mode: bool = False) -> st
         raise ValueError(data.get("error", {}).get("message", "Groq API error"))
     return data["choices"][0]["message"]["content"]
 
-# ─────────────────────────────────────────────
-# FASTAPI APP
-# ─────────────────────────────────────────────
 app = FastAPI(title="ConvoBot", version="1.0.0")
 
 app.add_middleware(
@@ -142,13 +113,9 @@ app.add_middleware(
     allow_methods=["*"], allow_headers=["*"],
 )
 
-# ─────────────────────────────────────────────
-# ROUTES
-# ─────────────────────────────────────────────
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
-
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest, x_groq_api_key: Optional[str] = Header(None)):
@@ -163,7 +130,6 @@ async def chat(request: ChatRequest, x_groq_api_key: Optional[str] = Header(None
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.post("/api/analyze", response_model=AnalyticsResponse)
 async def analyze(request: AnalyticsRequest, x_groq_api_key: Optional[str] = Header(None)):
@@ -200,18 +166,11 @@ async def analyze(request: AnalyticsRequest, x_groq_api_key: Optional[str] = Hea
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ─────────────────────────────────────────────
-# FRONTEND — served directly by Python
-# ─────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 async def frontend():
     """Serves the entire chat UI from Python — no separate HTML file needed."""
     return HTMLResponse(content=HTML_PAGE)
 
-
-# ─────────────────────────────────────────────
-# EMBEDDED HTML (entire frontend in one string)
-# ─────────────────────────────────────────────
 HTML_PAGE = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -438,10 +397,6 @@ HTML_PAGE = """<!DOCTYPE html>
 </body>
 </html>"""
 
-
-# ─────────────────────────────────────────────
-# ENTRY POINT
-# ─────────────────────────────────────────────
 if __name__ == "__main__":
     import webbrowser, threading, time
 
